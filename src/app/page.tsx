@@ -472,8 +472,13 @@ export default function QuranPage() {
               />
             </div>
             <footer className="bg-gradient-to-l from-[#062a20] to-[#081f18] py-4 px-6 border-t border-amber-400/20">
-              <div className="container mx-auto flex items-center justify-center text-sm text-amber-200/50">
+              <div className="container mx-auto flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-sm text-amber-200/50">
                 <span>صنع من قبل المهندس محمد عزالدين</span>
+                <span className="hidden sm:inline text-amber-400/30">|</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                  <span className="text-amber-300/70 font-medium">v1.0.2</span>
+                </span>
               </div>
             </footer>
           </>
@@ -502,8 +507,13 @@ export default function QuranPage() {
             </div>
             <AudioPlayer />
             <footer className="bg-gradient-to-l from-[#062a20] to-[#081f18] py-4 px-6 border-t border-amber-400/20">
-              <div className="container mx-auto flex items-center justify-center text-sm text-amber-200/50">
+              <div className="container mx-auto flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-sm text-amber-200/50">
                 <span>صنع من قبل المهندس محمد عزالدين</span>
+                <span className="hidden sm:inline text-amber-400/30">|</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                  <span className="text-amber-300/70 font-medium">v1.0.2</span>
+                </span>
               </div>
             </footer>
           </>
