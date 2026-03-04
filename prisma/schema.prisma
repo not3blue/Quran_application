@@ -1,0 +1,326 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 📖 QURAN CORE DATA - البيانات الأساسية للقرآن
+// ═══════════════════════════════════════════════════════════════
+
+/// سور القرآن الكريم
+model Surah {
+  id              Int      @id @default(autoincrement())
+  number          Int      @unique               // رقم السورة (1-114)
+  nameAr          String                         // الاسم بالعربية (الفاتحة)
+  nameEn          String                         // الاسم بالإنجليزية (Al-Fatiha)
+  revelation      String                         // مكية / مدنية
+  ayahCount       Int                            // عدد الآيات
+  startPage       Int                            // صفحة البداية
+  orderRevelation Int?                           // ترتيب النزول
+  ayat            Ayah[]                         // الآيات
+  
+  @@map("surahs")
+}
+
+/// آيات القرآن الكريم
+model Ayah {
+  id              Int      @id @default(autoincrement())
+  surahId         Int                             // رقم السورة
+  numberInSurah   Int                             // رقم الآية في السورة
+  numberGlobal    Int      @unique                // الرقم العالمي (1-6236)
+  textUthmani     String                          // النص العثماني
+  textSimple      String                          // النص المبسط
+  textClean       String?                         // نص بدون تشكيل (للبحث)
+  page            Int                             // رقم الصفحة
+  juz             Int                             // الجزء (1-30)
+  hizb            Float                           // الحزب (0.5, 1, 1.5...)
+  rub             Float?                          // الربع
+  sajda           Boolean  @default(false)        //是否存在 سجدة
+  sajdaType       String?                         // نوع السجدة (تلاوة/واجبة)
+  
+  surah           Surah    @relation(fields: [surahId], references: [id], onDelete: Cascade)
+  tafsirs         Tafsir[]
+  bookmarks       Bookmark[]
+  notes           Note[]
+  wordAnalysis    WordAnalysis[]
+  
+  @@index([surahId])
+  @@index([page])
+  @@index([juz])
+  @@map("ayahs")
+}
+
+/// تحليل الكلمات (كلمة بكلمة)
+model WordAnalysis {
+  id              Int     @id @default(autoincrement())
+  ayahId          Int
+  wordPosition    Int                          // موقع الكلمة في الآية
+  wordText        String                       // النص الأصلي
+  rootArabic      String?                      // الجذر
+  meaningAr       String?                      // المعنى بالعربية
+  meaningEn       String?                      // المعنى بالإنجليزية
+  grammarType     String?                      // النوع النحوي
+  
+  ayah            Ayah    @relation(fields: [ayahId], references: [id], onDelete: Cascade)
+  
+  @@index([ayahId])
+  @@map("word_analysis")
+}
+
+/// ملاحظات الكلمات الهرمية
+model WordNote {
+  id              String   @id @default(cuid())
+  wordText        String                        // النص الأصلي للكلمة
+  wordRoot        String?                       // جذر الكلمة (للملاحظات المشتركة)
+  surahId         Int                           // رقم السورة
+  ayahNumber      Int                           // رقم الآية
+  wordPosition    Int                           // موقع الكلمة
+  content         String                        // محتوى الملاحظة
+  parentId        String?                       // معرف الملاحظة الأب (للتركيب الهرمي)
+  order           Int      @default(0)          // ترتيب الملاحظة
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  parent          WordNote?  @relation("WordNoteHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children        WordNote[] @relation("WordNoteHierarchy")
+  
+  @@index([wordText])
+  @@index([wordRoot])
+  @@index([surahId])
+  @@map("word_notes")
+}
+
+/// إحصائيات الكلمات في القرآن
+model WordStatistic {
+  id              Int     @id @default(autoincrement())
+  wordText        String                       // النص الأصلي
+  wordRoot        String?                      // الجذر
+  count           Int      @default(0)         // عدد مرات الذكر
+  ayahs           String                       // قائمة الآيات (JSON: [{surahId, ayahNumber}])
+  
+  @@unique([wordText])
+  @@index([wordText])
+  @@index([wordRoot])
+  @@map("word_statistics")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 📚 TAFSIR DATA - بيانات التفسير
+// ═══════════════════════════════════════════════════════════════
+
+/// مصادر التفسير
+model TafsirSource {
+  id              Int      @id @default(autoincrement())
+  nameAr          String                         // اسم التفسير بالعربية
+  nameEn          String                         // اسم التفسير بالإنجليزية
+  authorAr        String                         // اسم المؤلف بالعربية
+  authorEn        String?                        // اسم المؤلف بالإنجليزية
+  description     String?                        // وصف التفسير
+  language        String   @default("ar")        // اللغة
+  isDefault       Boolean  @default(false)       // التفسير الافتراضي
+  tafsirs         Tafsir[]
+  
+  @@map("tafsir_sources")
+}
+
+/// نصوص التفسير
+model Tafsir {
+  id              Int          @id @default(autoincrement())
+  ayahId         Int
+  sourceId       Int
+  text           String                          // نص التفسير
+  textPlain      String?                         // نص بدون تنسيق (للبحث)
+  
+  ayah           Ayah         @relation(fields: [ayahId], references: [id], onDelete: Cascade)
+  source         TafsirSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  
+  @@unique([ayahId, sourceId])
+  @@index([ayahId])
+  @@index([sourceId])
+  @@map("tafsirs")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 🎧 AUDIO DATA - بيانات التلاوات الصوتية
+// ═══════════════════════════════════════════════════════════════
+
+/// القراء
+model Reciter {
+  id              Int         @id @default(autoincrement())
+  nameAr          String                            // الاسم بالعربية
+  nameEn          String                            // الاسم بالإنجليزية
+  bio             String?                           // نبذة عن القارئ
+  style           String                            // المرتل / المجود / المعلم
+  country         String?                           // البلد
+  image           String?                           // صورة القارئ
+  isDefault       Boolean     @default(false)       // القارئ الافتراضي
+  audioFiles      AudioFile[]
+  
+  @@map("reciters")
+}
+
+/// ملفات الصوت
+model AudioFile {
+  id              Int      @id @default(autoincrement())
+  reciterId       Int
+  surahId         Int
+  ayahNumber      Int                            // رقم الآية في السورة
+  audioUrl        String                         // رابط الملف الصوتي
+  duration        Float                          // المدة بالثواني
+  fileSize        Int?                           // حجم الملف بالبايت
+  format          String   @default("mp3")       // صيغة الملف
+  quality         String   @default("128")       // جودة الصوت
+  
+  reciter         Reciter  @relation(fields: [reciterId], references: [id], onDelete: Cascade)
+  
+  @@unique([reciterId, surahId, ayahNumber])
+  @@index([reciterId])
+  @@index([surahId])
+  @@map("audio_files")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 👤 USER DATA - بيانات المستخدم
+// ═══════════════════════════════════════════════════════════════
+
+/// المستخدمون
+model User {
+  id              String        @id @default(cuid())
+  email           String        @unique
+  name            String?
+  image           String?
+  emailVerified   DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  bookmarks       Bookmark[]
+  notes           Note[]
+  readingHistory  ReadingHistory[]
+  settings        UserSettings?
+  accounts        Account[]
+  sessions        Session[]
+  
+  @@map("users")
+}
+
+/// حسابات المصادقة (OAuth)
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+/// جلسات المستخدم
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+/// رموز التحقق
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+/// العلامات المرجعية
+model Bookmark {
+  id              String   @id @default(cuid())
+  userId          String
+  ayahId          Int
+  surahId         Int                         // للوصول السريع
+  ayahNumber      Int                         // رقم الآية في السورة
+  color           String   @default("#d4af37") // لون العلامة
+  label           String?                      // تسمية العلامة
+  createdAt       DateTime @default(now())
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ayah            Ayah     @relation(fields: [ayahId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, ayahId])
+  @@index([userId])
+  @@map("bookmarks")
+}
+
+/// الملاحظات الشخصية
+model Note {
+  id              String   @id @default(cuid())
+  userId          String
+  ayahId          Int
+  surahId         Int
+  ayahNumber      Int
+  content         String                        // محتوى الملاحظة
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ayah            Ayah     @relation(fields: [ayahId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([ayahId])
+  @@map("notes")
+}
+
+/// سجل القراءة
+model ReadingHistory {
+  id              String   @id @default(cuid())
+  userId          String
+  surahId         Int
+  ayahId          Int                           // آخر آية تمت قراءتها
+  lastRead        DateTime @default(now())
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId])
+  @@map("reading_history")
+}
+
+/// إعدادات المستخدم
+model UserSettings {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  fontSize        Int      @default(24)         // حجم الخط
+  fontFamily      String   @default("amiri")    // نوع الخط
+  selectedReciter Int      @default(1)          // القارئ المفضل
+  selectedTafsir  Int      @default(1)          // التفسير المفضل
+  autoPlay        Boolean  @default(true)       // التشغيل التلقائي
+  repeatCount     Int      @default(1)          // عدد التكرار
+  showTafsir      Boolean  @default(true)       // إظهار التفسير
+  showTranslation  Boolean @default(false)      // إظهار الترجمة
+  darkMode        Boolean  @default(false)      // الوضع الليلي
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("user_settings")
+}
