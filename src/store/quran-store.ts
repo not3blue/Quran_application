@@ -91,7 +91,7 @@ export interface SelectedWord {
 // حالة التطبيق
 interface QuranState {
   // العرض الحالي
-  currentView: 'home' | 'quran' | 'duas';
+  currentView: 'home' | 'quran' | 'duas' | 'admin';
 
   // البيانات
   surahs: Surah[];
@@ -286,7 +286,7 @@ export const useQuranStore = create<QuranState>()(
       goToAyah: (index) => set({ currentAyahIndex: index }),
 
       // تبديل العرض
-      setCurrentView: (view: 'home' | 'quran' | 'duas') => set({ currentView: view }),
+      setCurrentView: (view: 'home' | 'quran' | 'duas' | 'admin') => set({ currentView: view }),
     }),
     {
       name: 'quran-storage',
