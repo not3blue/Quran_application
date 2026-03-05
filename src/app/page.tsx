@@ -478,7 +478,7 @@ export default function QuranPage() {
                 <span className="hidden sm:inline text-amber-400/30">|</span>
                 <span className="flex items-center gap-1.5">
                   <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                  <span className="text-amber-300/70 font-medium">v1.0.2</span>
+                  <span className="text-amber-300/70 font-medium">v1.2.0</span>
                 </span>
               </div>
             </footer>
@@ -517,7 +517,7 @@ export default function QuranPage() {
                 <span className="hidden sm:inline text-amber-400/30">|</span>
                 <span className="flex items-center gap-1.5">
                   <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                  <span className="text-amber-300/70 font-medium">v1.0.2</span>
+                  <span className="text-amber-300/70 font-medium">v1.2.0</span>
                 </span>
               </div>
             </footer>
