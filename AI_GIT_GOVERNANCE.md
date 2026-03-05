@@ -24,7 +24,7 @@ The AI will AUTOMATICALLY FAIL the task if:
 | Trigger | Consequence |
 |---------|-------------|
 | Skipping branch creation | ❌ Task rejected |
-| Committing to main directly | ❌ Task rejected |
+| Committing to main/develop directly | ❌ Task rejected |
 | Missing VERSION update | ❌ Task rejected |
 | Missing changelog file | ❌ Task rejected |
 | Non-version branch name | ❌ Task rejected |
@@ -220,7 +220,7 @@ Low / Medium / High
 
 # 7️⃣ Mandatory Workflow (FOLLOW IN ORDER)
 
-### STEP 1: Sync main
+### STEP 1: Sync develop
 ```bash
 git checkout main
 git pull origin main
@@ -268,14 +268,8 @@ Create `/changelog/<VERSION>.md` with full documentation
 git push -u origin <VERSION>
 ```
 
-### STEP 9: Merge to main and tag
-```bash
-git checkout main
-git merge <VERSION>
-git tag -a v<VERSION> -m "Release <VERSION>"
-git push origin main
-git push origin v<VERSION>
-```
+### STEP 9: Prepare PR info
+Provide PR link for user to create
 
 ---
 
@@ -299,7 +293,7 @@ AI MUST NOT:
 | ❌ Forbidden Action | Reason |
 |---------------------|--------|
 | Commit directly to main | Bypasses review |
-| Create develop branch | Not allowed |
+| Commit directly to develop | Bypasses workflow |
 | Create non-version branches | Breaks protocol |
 | Skip VERSION file update | Breaks tracking |
 | Skip changelog generation | Breaks documentation |
@@ -327,7 +321,7 @@ AI MUST NOT:
 - [ ] Added/Removed code documented
 - [ ] Commit message valid (conventional commit)
 - [ ] Branch pushed to origin
-- [ ] Merged to main and tagged
+- [ ] PR link provided
 
 **If any condition fails → task is incomplete.**
 
@@ -336,7 +330,7 @@ AI MUST NOT:
 # 📋 QUICK WORKFLOW CHECKLIST (Copy-Paste)
 
 ```
-□ 1. git checkout main && git pull origin main
+□ 1. git checkout develop && git pull origin develop
 □ 2. Read VERSION → Determine increment type
 □ 3. git checkout -b X.X.X
 □ 4. Update VERSION file
@@ -344,22 +338,7 @@ AI MUST NOT:
 □ 6. git commit -m "type: description"
 □ 7. Create changelog/X.X.X.md
 □ 8. git push -u origin X.X.X
-□ 9. git checkout main && git merge X.X.X
-□ 10. git tag -a vX.X.X -m "Release X.X.X"
-□ 11. git push origin main && git push origin vX.X.X
-```
-
----
-
-# 🌿 Branch Structure
-
-```
-main ───── Production (with tags)
-  │
-  ├── 1.0.1 ─── Version branch (merged & tagged)
-  ├── 1.0.2 ─── Version branch (merged & tagged)
-  ├── 1.0.3 ─── Version branch (active)
-  ...
+□ 9. Provide PR link
 ```
 
 ---
