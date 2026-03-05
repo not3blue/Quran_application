@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
-import { Moon, Sun, Search, BookOpen, Settings, X, Sparkles, BookMarked, Heart, ArrowRight, Home } from 'lucide-react';
+import { Moon, Sun, Search, BookOpen, Settings, X, Sparkles, BookMarked, Heart, ArrowRight, Home, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -149,6 +149,16 @@ export function Header({ onSettingsClick }: HeaderProps) {
               ) : (
                 <Sun className="h-5 w-5" />
               )}
+            </Button>
+            
+            {/* زر لوحة التحكم */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setCurrentView('admin')}
+              className="bg-amber-400/20 hover:bg-amber-400/30 text-amber-100 border border-amber-400/40 rounded-xl w-11 h-11 transition-all duration-300"
+            >
+              <LayoutDashboard className="h-5 w-5" />
             </Button>
             
             {/* زر الإعدادات */}

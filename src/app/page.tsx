@@ -10,6 +10,7 @@ import { WordAnalysisPanel } from '@/components/quran/word-analysis-panel';
 import { AudioPlayer } from '@/components/quran/audio-player';
 import { SettingsDialog } from '@/components/quran/settings-dialog';
 import { SahifaSajjadiya } from '@/components/quran/sahifa-sajjadiya';
+import { AdminPanel } from '@/components/quran/admin-panel';
 import {
   useQuranStore,
   type Surah,
@@ -486,6 +487,10 @@ export default function QuranPage() {
 
         {currentView === 'duas' && (
           <SahifaSajjadiya isOpen={true} onClose={() => setCurrentView('home')} />
+        )}
+
+        {currentView === 'admin' && (
+          <AdminPanel isOpen={true} onClose={() => setCurrentView('home')} />
         )}
 
         {currentView === 'quran' && (
