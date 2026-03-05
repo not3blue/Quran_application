@@ -86,6 +86,7 @@ MAJOR.MINOR.PATCH
 - feature/login
 - bugfix/error
 - hotfix/urgent
+- develop
 
 **Regex validation:**
 ```
@@ -221,8 +222,8 @@ Low / Medium / High
 
 ### STEP 1: Sync develop
 ```bash
-git checkout develop
-git pull origin develop
+git checkout main
+git pull origin main
 ```
 
 ### STEP 2: Determine version increment
