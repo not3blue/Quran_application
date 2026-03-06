@@ -11,6 +11,9 @@ import { AudioPlayer } from '@/components/quran/audio-player';
 import { SettingsDialog } from '@/components/quran/settings-dialog';
 import { SahifaSajjadiya } from '@/components/quran/sahifa-sajjadiya';
 import { AdminPanel } from '@/components/quran/admin-panel';
+import { ErrorBoundary } from '@/components/error-boundary';
+import { ToastProvider, useToast } from '@/contexts/toast-context';
+import { fetchWithRetry, getErrorMessage } from '@/lib/fetch-utils';
 import {
   useQuranStore,
   type Surah,
@@ -461,7 +464,9 @@ export default function QuranPage() {
 
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-      <div className="min-h-screen flex flex-col bg-[var(--background)]">
+      <ToastProvider>
+        <ErrorBoundary>
+          <div className="min-h-screen flex flex-col bg-[var(--background)]">
         {currentView === 'home' && (
           <>
             <Header onSettingsClick={() => setSettingsOpen(true)} />
@@ -478,7 +483,7 @@ export default function QuranPage() {
                 <span className="hidden sm:inline text-amber-400/30">|</span>
                 <span className="flex items-center gap-1.5">
                   <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                  <span className="text-amber-300/70 font-medium">v1.2.0</span>
+                  <span className="text-amber-300/70 font-medium">v1.2.1</span>
                 </span>
               </div>
             </footer>
@@ -517,7 +522,7 @@ export default function QuranPage() {
                 <span className="hidden sm:inline text-amber-400/30">|</span>
                 <span className="flex items-center gap-1.5">
                   <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                  <span className="text-amber-300/70 font-medium">v1.2.0</span>
+                  <span className="text-amber-300/70 font-medium">v1.2.1</span>
                 </span>
               </div>
             </footer>
@@ -527,6 +532,8 @@ export default function QuranPage() {
         <SettingsDialog isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
         <Toaster />
       </div>
+        </ErrorBoundary>
+      </ToastProvider>
     </ThemeProvider>
   );
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { apiSuccess, apiError, handleApiError, ErrorCodes } from '@/lib/api-response';
 
 interface PrayerTimesResponse {
   code: number;
@@ -40,57 +41,90 @@ const CITIES: Record<string, { lat: number; lng: number; name: string; nameAr: s
   sadah: { lat: 16.9402, lng: 43.7638, name: 'Sadah', nameAr: 'صعدة' },
 };
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const city = searchParams.get('city') || 'sanaa';
-  
-  const cityData = CITIES[city] || CITIES.sanaa;
-  
-  const today = new Date();
-  const day = String(today.getDate()).padStart(2, '0');
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const year = today.getFullYear();
-  
+// أوقات افتراضية للطوارئ
+function getDefaultPrayerTimes(cityName: string) {
+  return {
+    city: cityName,
+    date: {
+      gregorian: new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }),
+      hijri: 'رمضان 1446',
+    },
+    prayers: [
+      { key: 'fajr', name: 'الفجر', time: '05:00', timeFormatted: '5:00 ص' },
+      { key: 'dhuhr', name: 'الظهر', time: '12:15', timeFormatted: '12:15 م' },
+      { key: 'asr', name: 'العصر', time: '15:36', timeFormatted: '3:36 م' },
+      { key: 'maghrib', name: 'المغرب', time: '18:12', timeFormatted: '6:12 م' },
+      { key: 'isha', name: 'العشاء', time: '19:21', timeFormatted: '7:21 م' },
+    ],
+    sunrise: '6:18 ص',
+    method: 'أم القرى',
+    fallback: true,
+  };
+}
+
+// تنسيق الوقت
+function formatTime(time: string): string {
   try {
-    // استخدام Aladhan API (مجاني)
-    const response = await fetch(
-      `https://api.aladhan.com/v1/timings/${day}-${month}-${year}?latitude=${cityData.lat}&longitude=${cityData.lng}&method=5`,
-      { next: { revalidate: 3600 } } // تحديث كل ساعة
-    );
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch prayer times');
-    }
-    
-    const data: PrayerTimesResponse = await response.json();
-    
-    if (data.code !== 200) {
-      throw new Error('Invalid response from prayer times API');
-    }
-    
-    const timings = data.data.timings;
-    
-    // تنسيق الوقت (إزالة الثواني)
-    const formatTime = (time: string) => {
-      const [hours, minutes] = time.split(':');
-      const hour = parseInt(hours);
-      const minute = minutes;
-      const period = hour >= 12 ? 'م' : 'ص';
-      const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
-      return `${displayHour}:${minute} ${period}`;
-    };
-    
-    const prayers = [
-      { key: 'fajr', name: 'الفجر', time: timings.Fajr },
-      { key: 'dhuhr', name: 'الظهر', time: timings.Dhuhr },
-      { key: 'asr', name: 'العصر', time: timings.Asr },
-      { key: 'maghrib', name: 'المغرب', time: timings.Maghrib },
-      { key: 'isha', name: 'العشاء', time: timings.Isha },
-    ];
-    
-    return NextResponse.json({
-      success: true,
-      data: {
+    const [hours, minutes] = time.split(':');
+    const hour = parseInt(hours, 10);
+    if (isNaN(hour)) return time;
+
+    const period = hour >= 12 ? 'م' : 'ص';
+    const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+    return `${displayHour}:${minutes} ${period}`;
+  } catch {
+    return time;
+  }
+}
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const city = searchParams.get('city') || 'sanaa';
+
+    const cityData = CITIES[city] || CITIES.sanaa;
+
+    const today = new Date();
+    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const year = today.getFullYear();
+
+    // إنشاء AbortController للتحكم في timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+    try {
+      const response = await fetch(
+        `https://api.aladhan.com/v1/timings/${day}-${month}-${year}?latitude=${cityData.lat}&longitude=${cityData.lng}&method=5`,
+        {
+          signal: controller.signal,
+          next: { revalidate: 3600 }, // تحديث كل ساعة
+        }
+      );
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`Aladhan API error: ${response.status}`);
+      }
+
+      const data: PrayerTimesResponse = await response.json();
+
+      if (data.code !== 200) {
+        throw new Error('Invalid response from prayer times API');
+      }
+
+      const timings = data.data.timings;
+
+      const prayers = [
+        { key: 'fajr', name: 'الفجر', time: timings.Fajr },
+        { key: 'dhuhr', name: 'الظهر', time: timings.Dhuhr },
+        { key: 'asr', name: 'العصر', time: timings.Asr },
+        { key: 'maghrib', name: 'المغرب', time: timings.Maghrib },
+        { key: 'isha', name: 'العشاء', time: timings.Isha },
+      ];
+
+      return apiSuccess({
         city: cityData.nameAr,
         date: {
           gregorian: data.data.date.readable,
@@ -102,27 +136,22 @@ export async function GET(request: Request) {
         })),
         sunrise: formatTime(timings.Sunrise),
         method: 'أم القرى',
-      },
-    });
-    
+      });
+
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+
+      // إذا فشل الاتصال بالـ API الخارجي، نرجع البيانات الافتراضية
+      console.warn('Using fallback prayer times:', fetchError);
+
+      // نرجع البيانات الافتراضية مع إشعار بأنها احتياطية
+      return apiSuccess(getDefaultPrayerTimes(cityData.nameAr));
+    }
+
   } catch (error) {
-    console.error('Prayer times error:', error);
-    
-    // إرجاع أوقات افتراضية في حالة الخطأ
-    return NextResponse.json({
-      success: false,
-      error: 'Unable to fetch prayer times',
-      data: {
-        city: cityData.nameAr,
-        prayers: [
-          { key: 'fajr', name: 'الفجر', time: '04:45', timeFormatted: '4:45 ص' },
-          { key: 'dhuhr', name: 'الظهر', time: '12:10', timeFormatted: '12:10 م' },
-          { key: 'asr', name: 'العصر', time: '15:30', timeFormatted: '3:30 م' },
-          { key: 'maghrib', name: 'المغرب', time: '18:10', timeFormatted: '6:10 م' },
-          { key: 'isha', name: 'العشاء', time: '19:30', timeFormatted: '7:30 م' },
-        ],
-      },
-    });
+    // خطأ غير متوقع - نرجع البيانات الافتراضية مع نجاح
+    console.error('Prayer times unexpected error:', error);
+    return apiSuccess(getDefaultPrayerTimes('صنعاء'));
   }
 }
 
